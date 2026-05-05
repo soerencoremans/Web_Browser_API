@@ -1,13 +1,14 @@
 import collections
+import math
 import platform
+import random
 import sys
+import time
+from functools import partial
+
+import numpy as np
 import pyautogui
 import pyscreeze
-import numpy as np
-from functools import partial
-import random
-import time
-import math
 
 
 MINIMUM_DURATION = 0.1
@@ -23,7 +24,7 @@ elif sys.platform == "win32":
 elif platform.system() == "Linux":
     from pyautogui import _pyautogui_x11 as platformModule
 else:
-    raise NotImplementedError("Your platform (%s) is not supported by PyAutoGUI." % (platform.system()))
+    raise NotImplementedError(f"Your platform ({platform.system()}) is not supported by PyAutoGUI.")
 
 if sys.version_info[0] == 2 or sys.version_info[0:2] in ((3, 1), (3, 2)):
     # Python 2 and 3.1 and 3.2 uses collections.Sequence
@@ -59,6 +60,7 @@ def moveAlongPath(path, x=None, y=None, duration=0.0, tween=pyautogui.linear, _p
     x, y = _normalizeXYArgs(x, y)
     _mouseMoveDrag("move", x, y, 0, 0, duration, tween=tween, path=path)
 
+
 def _mouseMoveDrag(moveOrDrag, x, y, xOffset, yOffset, duration, tween=pyautogui.linear, button=None, path=None):
     """Handles the actual move or drag event, since different platforms
     implement them differently.
@@ -93,7 +95,7 @@ def _mouseMoveDrag(moveOrDrag, x, y, xOffset, yOffset, duration, tween=pyautogui
 
     # The move and drag code is similar, but OS X requires a special drag event instead of just a move event when dragging.
     # See https://stackoverflow.com/a/2696107/1893164
-    assert moveOrDrag in ("move", "drag"), "moveOrDrag must be in ('move', 'drag'), not %s" % (moveOrDrag)
+    assert moveOrDrag in ("move", "drag"), f"moveOrDrag must be in ('move', 'drag'), not {moveOrDrag}"
 
     if sys.platform != "darwin":
         moveOrDrag = "move"  # Only OS X needs the drag event specifically.
@@ -130,7 +132,7 @@ def _mouseMoveDrag(moveOrDrag, x, y, xOffset, yOffset, duration, tween=pyautogui
             num_steps = int(duration / MINIMUM_SLEEP)
             sleep_amount = duration / num_steps
 
-        steps = [path(tween(n / num_steps)) for n in range(num_steps+1)]
+        steps = [path(tween(n / num_steps)) for n in range(num_steps + 1)]
 
     for tweenX, tweenY in steps:
         if len(steps) > 1:
@@ -150,15 +152,18 @@ def _mouseMoveDrag(moveOrDrag, x, y, xOffset, yOffset, duration, tween=pyautogui
         elif moveOrDrag == "drag":
             platformModule._dragTo(tweenX, tweenY, button)
         else:
-            raise NotImplementedError("Unknown value of moveOrDrag: {0}".format(moveOrDrag))
+            raise NotImplementedError(f"Unknown value of moveOrDrag: {moveOrDrag}")
 
     _conditionalFailSafe(tweenX, tweenY)
+
 
 def _conditionalFailSafe(x, y):
     if pyautogui.FAILSAFE and (x, y) in pyautogui.FAILSAFE_POINTS:
         pyautogui.failSafeCheck()
 
+
 Point = collections.namedtuple("Point", "x y")
+
 
 def _normalizeXYArgs(firstArg, secondArg):
     """
@@ -198,9 +203,7 @@ def _normalizeXYArgs(firstArg, secondArg):
                 return Point(int(firstArg[0]), int(firstArg[1]))
             else:
                 raise pyautogui.PyAutoGUIException(
-                    "When passing a sequence for firstArg, secondArg must not be passed (received {0}).".format(
-                        repr(secondArg)
-                    )
+                    f"When passing a sequence for firstArg, secondArg must not be passed (received {secondArg!r})."
                 )
         elif len(firstArg) == 4:
             # firstArg is a four-integer tuple, (left, top, width, height), we should return the center point
@@ -208,18 +211,18 @@ def _normalizeXYArgs(firstArg, secondArg):
                 return pyautogui.center(firstArg)
             else:
                 raise pyautogui.PyAutoGUIException(
-                    "When passing a sequence for firstArg, secondArg must not be passed and default to None (received {0}).".format(
-                        repr(secondArg)
-                    )
+                    "When passing a sequence for firstArg, secondArg must not be passed "
+                    f"and default to None (received {secondArg!r})."
                 )
         else:
             raise pyautogui.PyAutoGUIException(
-                "The supplied sequence must have exactly 2 or exactly 4 elements ({0} were received).".format(
-                    len(firstArg)
-                )
+                "The supplied sequence must have exactly 2 or exactly 4 elements "
+                f"({len(firstArg)} were received)."
             )
     else:
         return Point(int(firstArg), int(secondArg))  # firstArg and secondArg are just x and y number values
+
+
 # ---- Path polynomial helpers moved from api.py ----
 
 def _fit_quartic(points):
@@ -235,7 +238,7 @@ def _fit_quartic(points):
     -------
     tuple[float, float, float, float, float]
         Coefficients (a, b, c, d, e) such that
-        v(t) = a·t⁴ + b·t³ + c·t² + d·t + e
+        v(t) = a*t^4 + b*t^3 + c*t^2 + d*t + e
     """
     if len(points) != 5:
         raise ValueError("Need exactly 5 control points for a 4th-degree fit")
@@ -246,7 +249,7 @@ def _fit_quartic(points):
     # Build the Vandermonde matrix for degree-4 terms
     V = np.vstack([t**4, t**3, t**2, t, np.ones_like(t)]).T  # shape (5, 5)
 
-    # Solve V · coeffs = v  → coeffs = (a, b, c, d, e)
+    # Solve V * coeffs = v -> coeffs = (a, b, c, d, e)
     coeffs = np.linalg.solve(V, v)        # returns a 5-element vector
 
     return tuple(coeffs)                  # (a, b, c, d, e)
@@ -266,7 +269,7 @@ def _build_mouse_path_polynomials(p_start, p_dest):
     Returns
     -------
     ((ax, bx, cx, dx, ex), (ay, by, cy, dy, ey))
-        Coefficients for x(t) and y(t) where t ∈ {0,1,2,3,4}.
+        Coefficients for x(t) and y(t), where t is in {0, 1, 2, 3, 4}.
     """
     x0, y0 = p_start
     x4, y4 = p_dest
@@ -279,11 +282,10 @@ def _build_mouse_path_polynomials(p_start, p_dest):
         (x0 + 0.75 * v_x, y0 + 0.75 * v_y),
     ]
 
-    # --- 2. jitter each base point by up to ±dist/6 in x and y ---
+    # --- 2. jitter each base point by up to dist/6 in x and y ---
     dist = math.hypot(v_x, v_y) / 6.0
     jittered = [
-        (bx + random.uniform(-dist, dist),
-         by + random.uniform(-dist, dist))
+        (bx + random.uniform(-dist, dist), by + random.uniform(-dist, dist))
         for bx, by in base_pts
     ]
 
@@ -292,41 +294,43 @@ def _build_mouse_path_polynomials(p_start, p_dest):
 
     # --- 4. assign t = 0..4 and fit polynomials ---
     t_values = [0, 1, 2, 3, 4]
-    x_ctrl   = list(zip(t_values, [p[0] for p in pts]))
-    y_ctrl   = list(zip(t_values, [p[1] for p in pts]))
+    x_ctrl = list(zip(t_values, [p[0] for p in pts]))
+    y_ctrl = list(zip(t_values, [p[1] for p in pts]))
 
-    coeff_x  = _fit_quartic(x_ctrl)   # (ax, bx, cx, dx, ex)
-    coeff_y  = _fit_quartic(y_ctrl)   # (ay, by, cy, dy, ey)
+    coeff_x = _fit_quartic(x_ctrl)   # (ax, bx, cx, dx, ex)
+    coeff_y = _fit_quartic(y_ctrl)   # (ay, by, cy, dy, ey)
 
     return coeff_x, coeff_y
 
+
 # ---------- polynomial evaluator ----------
 def _eval_poly(coeffs, t):
-    """Horner-style evaluation of a₄t⁴+…+e."""
+    """Horner-style evaluation of a*t^4 + b*t^3 + c*t^2 + d*t + e."""
     a, b, c, d, e = coeffs
     return (((a * t + b) * t + c) * t + d) * t + e
 
 
 def _paths(coeffsX, coeffsY, t):
-    return (_eval_poly(coeffsX, t*4), _eval_poly(coeffsY, t*4))
+    return (_eval_poly(coeffsX, t * 4), _eval_poly(coeffsY, t * 4))
+
 
 # ---------- main mover ----------
-def _move_mouse_poly(driver, dest_x, dest_y,
-                    total_dur=0.45, titlebar_h=80, x_offset=20):
+def _move_mouse_poly(driver, dest_x, dest_y, total_dur=0.45, titlebar_h=80, x_offset=20):
     """
     Move the real cursor from its current position to (dest_x, dest_y) inside
     the browser window, following a randomised quartic path.
 
-    dest_x, dest_y  : coordinates *inside the page viewport* (CSS pixels)
-    total_dur       : total time for the glide, in seconds
-    steps           : how many intermediate samples along the curve
+    dest_x, dest_y: coordinates inside the page viewport (CSS pixels)
+    total_dur: total time for the glide, in seconds
     """
-    # 1) Window offset → translate page coords → absolute screen coords
-    win_pos   = driver.get_window_position()
-    abs_dest  = (int(win_pos["x"] + dest_x + x_offset),
-                 int(win_pos["y"] + titlebar_h + dest_y))
+    # 1) Window offset: translate page coords to absolute screen coords.
+    win_pos = driver.get_window_position()
+    abs_dest = (
+        int(win_pos["x"] + dest_x + x_offset),
+        int(win_pos["y"] + titlebar_h + dest_y),
+    )
 
-    print("abs_dest ", abs_dest)
+    print("abs_dest", abs_dest)
 
     # 2) Current cursor pos (screen coords)
     abs_start = pyautogui.position()
@@ -336,7 +340,7 @@ def _move_mouse_poly(driver, dest_x, dest_y,
 
     path = partial(_paths, poly_x, poly_y)
 
-    # 5) Sample t from 0→4 (matching our 5-point construction)
+    # 5) Sample t from 0 to 4 (matching our 5-point construction).
     moveAlongPath(path, abs_dest[0], abs_dest[1], total_dur)
 
 

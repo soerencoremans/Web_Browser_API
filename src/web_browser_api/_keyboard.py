@@ -1,4 +1,5 @@
-import time, random, subprocess, shutil, sys
+import subprocess
+
 
 def _xkb_query():
     """Return current X keyboard settings as a dict (layout/variant/options/model/rules)."""
@@ -10,12 +11,13 @@ def _xkb_query():
             state[k.strip()] = v.strip()
     # Normalize keys we care about
     return {
-        "layout":  state.get("layout", ""),
+        "layout": state.get("layout", ""),
         "variant": state.get("variant", ""),
         "options": state.get("options", ""),
-        "model":   state.get("model", ""),
-        "rules":   state.get("rules", ""),
+        "model": state.get("model", ""),
+        "rules": state.get("rules", ""),
     }
+
 
 def _xkb_apply(state):
     """Apply a previously captured XKB state."""
@@ -34,6 +36,7 @@ def _xkb_apply(state):
     if state.get("options"):
         args += ["-option", state["options"]]
     subprocess.run(args, check=True)
+
 
 def _switch_to_us():
     """Switch keyboard to US layout."""
