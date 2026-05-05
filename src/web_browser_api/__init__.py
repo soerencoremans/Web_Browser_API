@@ -7,11 +7,13 @@ __version__ = "0.1.0"
 # Public API surface
 __all__ = [
     "get_driver", "close_driver", "nuke_chrome_profile",
-    "switch_to_latest_tab", "focus_chrome_window",
+    "get_profile_paths", "ensure_profile", "add_cookie_sites", "read_cookie_sites",
+    "list_profiles", "delete_profile",
+    "switch_to_latest_tab", "open_new_tab", "close_current_tab", "focus_chrome_window",
     "generate_password", "generate_bot_identity",
     "type_like_human", "human_pause", "move_mouse",
-    "get_element_center", "click_element", "click_and_hold_element",
-    "click_and_hold_pos", "extract_text_from_chrome_window",
+    "get_element_center", "get_element_click_point", "click_element",
+    "click_and_hold_element", "click_and_hold_pos", "extract_text_from_chrome_window",
     # debug helpers
     "get_current_tab_url", "get_page_source",
 ]
@@ -22,8 +24,17 @@ _def_to_module = {
     "get_driver": ".driver",
     "close_driver": ".driver",
     "nuke_chrome_profile": ".driver",
+    # profiles
+    "get_profile_paths": ".profiles",
+    "ensure_profile": ".profiles",
+    "add_cookie_sites": ".profiles",
+    "read_cookie_sites": ".profiles",
+    "list_profiles": ".profiles",
+    "delete_profile": ".profiles",
     # api
     "switch_to_latest_tab": ".api",
+    "open_new_tab": ".api",
+    "close_current_tab": ".api",
     "focus_chrome_window": ".api",
     "generate_password": ".api",
     "generate_bot_identity": ".api",
@@ -31,6 +42,7 @@ _def_to_module = {
     "human_pause": ".api",
     "move_mouse": ".api",
     "get_element_center": ".api",
+    "get_element_click_point": ".api",
     "click_element": ".api",
     "click_and_hold_element": ".api",
     "click_and_hold_pos": ".api",
